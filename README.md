@@ -1,3 +1,3 @@
 # ref
 
-[ffmpeg](https://github.com/td0g/ref/blob/main/ffmpeg.txt)
+[ffmpeg](https://github.com/td0g/ref/raw/main/ffmpeg.txt)
