@@ -1,0 +1,281 @@
+#######################   General   ######################
+
+  #Add FFMPEG to PATH
+Run comand prompt as admin
+setx /M PATH "C:\Path\you\want;%PATH%"
+
+  #Batch Process all files in folder (Shell Command)
+for %i in (*.[FILE_TYPE]) do ffmpeg -y -i "%i" [FILTERS][OPTIONS] "%~ni.mp4"
+
+  #Batch Process all files in folder and subfolders (Shell Command)
+for /R %i in (*.[FILE_TYPE]) do ffmpeg -y -i "%i" [FILTERS][OPTIONS] "%~ni.mp4"
+
+  #Batch Process all files in folder (Batch File)
+@for %%i in (*.mkv) do @ffmpeg -y -i "%%i" [FILTERS][OPTIONS] "%%~ni.mp4"
+
+
+  #Batch Process list of files (Batch File)
+set filter=-vf "[FILTERS]" [OPTIONS]
+ffmpeg -i 1.mp4 %filter% 1_edit.mp4
+ffmpeg -i 2.mp4 %filter% 2_edit.mp4
+
+  #Hide status output
+-nostats
+
+  #Hide Banner
+-hide_banner
+
+
+#######################   Syntax   ######################
+
+  #Basic syntax
+ffmpeg.exe -i "INPUT_VIDEO.mp4" "OUTPUT_VIDEO.mp4"
+
+  #Assign filters + codec
+ffmpeg.exe -i "INPUT_VIDEO.mp4" -vf "VIDEO_FILTERS" -af "AUDIO_FILTERS" -vcodec "VIDEO_CODEC" -acodec "AUDIO_CODEC"
+
+  #Input start, end times
+ffmpeg.exe -ss [START_TIME] -t [TOTAL_TIME] -i "INPUT_VIDEO.mp4" "OUTPUT_VIDEO.mp4"
+
+  #Multiple Filters - 2 ways:
+-vf rotate=PI,scale=720:1280
+-filter_complex [0]rotate=PI[a];[a]scale=720:1280[b] -map "[b]"
+
+
+
+#######################   Encoding   ######################
+
+  #Make video compatible with almost all media players
+-vcodec libx264 -crf 28 -profile:v baseline -level 3.0 -pix_fmt yuv420p -movflags faststart
+
+
+  #Encode For Youtube
+-c:v libx264 -preset slow -profile:v high -crf 18 -coder 1 -pix_fmt yuv420p -movflags +faststart -g 30 -bf 2 -c:a aac -b:a 384k -profile:a aac_low
+
+  #Encode for Xbox 360
+-c:v libx264 -profile:v high -crf 23 -c:a aac -strict experimental -ac 2 -q:a 100
+
+  #Compress Video:
+  ###   Higher crf = smaller size (32 is pretty good, 18 is no visual degredation, 0 is lossless)
+ff-vf scale=[SCALED_WIDTH]:-1 -vcodec libx264 -crf 20 "output.mp4"
+
+  #GIF
+ffmpeg -r 24 -i "input.mov" -vf palettegen "palette.png"
+ffmpeg -r 24 -i "input.mov" -i "pallette.png" -lavfi paletteuse -f gif "output.gif"
+
+  #WEBM
+ffmpeg -i "input.mp4" -vcodec libvpx-vp9 -b:v 0 -crf 28 "output.webm"
+
+  #Photos to Video (Timelapse)
+  ###   all images named C:\img001.jpg, C:\img002.jpg, etc. will be used
+ffmpeg -r 24 -i "C:\img%03d.jpg" "T:\Projects\2017-11-14 Debayer\over.mp4"
+  ###   Reduce output dimensions (set one dimension while maintaining aspect ratio)
+ffmpeg -r 24 -i "C:\img%03d.jpg" -vf scale=320:-2 output.mp4
+
+  #Video Frame(s) to Image
+ffmpeg -i input.mp4 select='eq(n\,1)+eq(n\,200)+eq(n\,400)+eq(n\,600)+eq(n\,800)+eq(n\,1000)' -vsync vfr -q:v 2 -out.jpg
+
+
+#######################   Timeline Editing   ######################
+
+  #Trim Without Re-Encode
+-ss [START_TIME_IN_SECONDS] -t [TOTAL_TIME_IN_SECONDS] -c copy
+
+  #Trim to shortest stream (audio or video)
+-shortest
+
+
+#######################   Colour Correction   ######################
+
+  #Curves
+"curves=all='0/0 0.5/1 1/1'"
+
+  #Gamma
+eq=gamma=1.5:saturation=1.3
+
+#######################   Analysis Aids   ######################
+
+NOTE: info on PTS, DTS, Timebase is available at http://dranger.com/ffmpeg/tutorial05.html
+
+  #Force Keyframes
+-vcodec libx264 -x264-params keyint=[FRAMES_PER_KEYFRAME]
+
+  #Add frame numbers and PTS to video
+-vf "drawtext=fontfile=/usr/share/fonts/TTF/Vera.ttf: text='FRAME=%{n}  PTS=%{pts}': x=(w-tw)/2: y=h-(2*lh): fontcolor=white: box=1: boxcolor=0x00000000@1" -vsync 1
+  
+  #Display the timestamp of each frame
+ffprobe -f lavfi -i "movie=vid.mp4,fps=fps=25[out0]" -show_frames -show_entries frame=pkt_pts_time -of csv=p=0
+
+#######################   Combining   ######################
+
+NOTE: Use Google Sheet tool for crossfade concats & overlays
+
+### NO AUDIO
+
+  #Trimming Video:
+-filter_complex "[0]trim=15:70,setpts=PTS-STARTPTS[a];[0]trim=135:226,setpts=PTS-STARTPTS[b];[a][b]concat[c];[c]scale=1280:720[d]" -map "[d]"
+
+  #Concatenate Videos:
+ffmpeg -i "input.mov" -i "input2.mov" -i "input3.mov" -filter_complex "[0:v:0] [0:a:0] [1:v:0] [1:a:0] [2:v:0] [2:a:0] concat=n=3:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" "output.mov"
+
+  #Inject black at start & end; fade in and out (https://video.stackexchange.com/questions/20717/ffmpeg-add-3-seconds-of-black-to-video-head-and-tail   &   https://superuser.com/questions/778762/crossfade-between-2-videos-using-ffmpeg)
+ffmpeg -i "fullvideo.mp4" -filter_complex "[0:v]copy[mainVid];[0:v]trim=0:3,geq=0:128:128[blank];[blank][mainVid]concat[x];[x][blank]concat[y]" -map "[y] "output.mp4"
+
+  #Side-byside overlay, individual start times edited,rotating exterior video
+  ###  This does not work well for changing frame rates... Use the Four-Video Mosaic method below instead which uses nullsrc base
+ffmpeg -ss 11.5 -i "input0.MP4" -ss 8.6 -i "input1.MP4" -ss 4.5 -i "audio.wav" -filter_complex "[0:v]pad=2528:1080[int];[1:v]rotate=-PI/2[intb];[int][intb]overlay=1920:0[vid];[2:a]volume=32[aud]" -map [vid] -map [aud] -c:v libx264 -crf 23 -preset veryfast "output.MP4"
+
+  #Four-Video Mosaic
+  ###   Make sure you set the nullsrc size and framerate!
+ffmpeg -i "1" -i "2" -i "3" -i "4" 	-filter_complex "nullsrc=size=2560x1440:rate=30[base];[0:v] setpts=PTS-STARTPTS, scale=1280x720 [upperleft];[1:v] setpts=PTS-STARTPTS, scale=1280x720 [upperright];[2:v] setpts=PTS-STARTPTS, scale=1280x720 [lowerleft];[3:v] setpts=PTS-STARTPTS, scale=1280x720 [lowerright];[base][upperleft] overlay=shortest=1 [tmp1];[tmp1][upperright] overlay=shortest=1:x=1280 [tmp2];[tmp2][lowerleft] overlay=shortest=1:y=720 [tmp3];[tmp3][lowerright] overlay=shortest=1:x=1280:y=720" -c:v libx264 "output.mp4"
+
+  #Easier way for four-video mosaic
+-vf "[0:v][1:v][2:v][3:v]xstack=inputs=4:layout=0_0|w0_0|0_h0|w0_h0[v]"
+
+
+### WITH AUDIO
+  #Concatenate 2 videos
+ffmpeg -y -i input0.mp4 -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate0.ts
+ffmpeg -y -i input1.mp4 -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate1.ts
+ffmpeg -y -i "concat:intermediate0.ts|intermediate1.ts" -c copy -bsf:a aac_adtstoasc output.mp4
+
+
+  #Concatenate large number of videos (.bat file)
+c:
+cd c:\videos
+(for %%i in (*.MP4) do @echo file '%%i') > mylist.txt
+ffmpeg -y -f concat -safe 0 -i mylist.txt -c copy "output.mp4"
+
+
+#######################   Playback Rate   ######################
+
+  #Set Playback Rate (10x, 50x)
+  #atempo filter cannot exceed 2 but can be daisychained
+-vf setpts=PTS*0.1 -af atempo=2,atempo=2,atempo=2,atempo=1.25
+-vf setpts=PTS*0.02 -af atempo=2,atempo=2,atempo=2,atempo=2,atempo=2,atempo=1.5625
+
+  #Full command for making videos easy to review
+  #Make sure nullsrc rate is equal to input video rate divided by setpts factor (eg. 240 / 8 = 30)
+  -ss [START_TIME_IN_SECONDS] -t [TOTAL_TIME_IN_SECONDS] -filter_complex "nullsrc=size=1280x720:rate=30[base];[0:v]setpts=8*PTS[vid];[base][vid]overlay=shortest=1" -vcodec libx264 -crf 18
+
+  #Motion Interpolation
+-vf minterpolate=fps=[TARGET_FRAMERATE]:mi_mode=[blend, obmc, aobmc,bidir,bilat,esa,tss,tdls,ntss,fss,ds,hexbs,epzs,umh]
+
+#######################   Effects   ######################
+
+NOTE: Use Google Sheet tool for text overlays
+
+  #Adding Text to Video
+Use this tool: http://ffmpeg.shanewhite.co/
+Example: drawtext="fontsize=64:fontfile='C\:\\Windows\\Fonts\\ADAM.CG PRO.otf':text='Linden'::fontcolor=ff0000:alpha='if(lt(t,0),0,if(lt(t,1),(t-0)/1,if(lt(t,3),1,if(lt(t,4),(1-(t-3))/1,0))))':x=64:y=64:shadowx=3:shadowy=6"
+Use lossless format for intermediate video:
+  Fast but large: ffmpeg -i input -c:v libx264 -crf 0 -preset ultrafast -c:a libmp3lame -b:a 320k output.mp4
+  Slow but 1/2 size: ffmpeg -i input -c:v libx264 -crf 0 -preset veryslow -c:a libmp3lame -b:a 320k output.mp4
+Also: CRF 17/18 is VISUALLY lossless
+
+  #Rotate 90 degrees CCW
+-vf rotate=PI/2
+
+  #Stabilize
+-i input.mp4 -vf vidstabdetect=stepsize=32:shakiness=10:accuracy=10:result=transform_vectors.trf -f null - 
+-i input.mp4 -y -vf vidstabtransform=input=transform_vectors.trf:zoom=0:smoothing=10,unsharp=5:5:0.8:3:3:0.4 -vcodec libx264 -crf 18 -acodec copy stabilized.mp4
+
+  #Background Noise Reduction
+-i input.mp4 input.mp3
+Audacity, load input.mp3, Select area JUST NOISE, effects -> remove noise -> get profile, effects -> remove noise -> preview (test lots!), export to mp3
+ffmpeg -i input.mp4 -i input.mp3 -c:v copy -map 0:v -map 1:a -acodec aac output.mp4
+
+
+#######################   Image Correction   ######################
+
+  #Reduce video noise
+-filter:v hqdn3d=4.0:3.0:6.0:4.5
+
+  #Adjust Brightness / Contrast
+-filter:v eq=brightness=0:contrast=1
+
+  #Colour Toning
+  #Using Photoshop, you can test colours by using image --> adjustments --> Selective Colour, and copying the results (RELATIVE) below
+-vf "selectivecolor=reds=0 -.15 -.15 0.15:yellows=0 0 -.2 0:greens=-.25 0.25 0 -.15:cyans:0 0.50 0.50 -.33:correction_mode=relative"
+
+
+#######################   Audio   ######################
+
+NOTE: If video is unaltered, copy the video stream without re-encoding (-c:v copy)
+
+  #Overlay volume levels on video
+-filter_complex "[0:a]asplit[a0][aud];[a0]showvolume[graph];[0:v][graph]overlay[vid]" -map [vid] -map [aud]
+
+  #Mixdown stereo to mono
+-ac 1
+
+  #Remove one channel, copy other channel to stereo
+-af pan="mono|c0=FL"
+-af pan="mono|c0=FR"
+-map_channel 0.1.0
+
+  #Change volume
+-af volume=2.0
+
+  #Normalize volume (automatic)
+-af loudnorm
+
+  #Reduce background noise (high+low cut)
+-af "highpass=f=200, lowpass=f=3000"
+
+  #Reduce background noise (FFT)
+-af afftdn
+
+  #Replace Audio With MP3
+-i vid.mp4 -i aud.mp3 -t [VID_TIME] -filter:a "volume=1" -c:v copy -map 1:a -ac 2 output.mp4
+
+  #Overlay MP3 on Audio
+-i vid.mp4 -i aud.mp3 -t [VID_TIME] -filter_complex "[0:a]volume=1[0a];[1:a]volume=1.5[1a];[0a][1a]amix[a]" -c:v copy -map "[a]" -ac 2 output.mp4
+
+  #Overlay multiple MP3, Loop
+-i vid.mp4 -i 0.mp3 -i 1.mp3 -i 2.mp3 -filter_complex "[0:a]volume=2[0a];[1:a][2:a][3:a]concat=n=3:v=0:a=1[a];[a]aloop=[NUMBER_OF_LOOPS][aloop];[aloop]volume=0.5[amp3];[0a][amp3]amix[a]" -c:v copy -map "[a]" -ac 2 -shortest out.mp4
+
+  #Concat Audio Tracks (also looping track)
+-filter_complex "[1:a][2:a][3:a]concat=n=N:v=0:a=1[a];[a]volume=1[b]" -map [b]
+  
+  #Remove audio from video
+[INPUTS] [FILTERS] -an
+
+  #Denoising Speech
+WHITE NOISE Removal (quite powerful, leaves noise intact in speech):
+-af anlmdn=s=0.05
+FFT ANALYSIS Removal (looks for noise everywhere, less powerful)
+-af afftdn=nr=40
+
+
+#######################   Analysis   ######################
+
+  #Get frame count from container
+ffprobe -v error -select_streams v:0 -show_entries stream=nb_frames -of default=nokey=1:noprint_wrappers=1 input.mp4
+
+  #Count frames
+ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of default=nokey=1:noprint_wrappers=1 input.mkv
+
+  #Count keyframes
+ffprobe -v error -count_frames -select_streams v:0 -skip_frame nokey -show_entries stream=nb_read_frames -of default=nokey=1:noprint_wrappers=1 input.mkv
+
+  #Display info of each frame
+ffmpeg -hide_banner -i "input.mp4" -vf "showinfo" -f null - 2> log.txt
+
+  #Check 'autorotation'
+ffprobe -loglevel error -select_streams v:0 -show_entries stream_tags=rotate -of default=nw=1:nk=1 -i "input.mp4"
+
+
+  
+#######################   Workflow  ######################
+
+  #Draw single frame and use in entire video (so it doesn't have to re-render for each frame)
+-filter_complex "color=c=white:s=1920x1080:r=1:d=1,geq=lum='if(lte(X+Y,20),0,lum(X,Y))',drawbox=0:0:1920:1080:t=20,geq=lum='if(lte(X+Y,50),0,lum(X,Y))',gblur=sigma=10,drawbox=0:0:1920:1080:t=3,gblur=sigma=2,format=yuvj420p,extractplanes=y[a];[a]loop=-1[b];color=c=white:s=1920x1080:r=29.97:d=200[c];[c][b]overlay"
+  
+#######################   Notes   ######################
+
+TB is < 1 (30FPS = 0.033)
+
+String literals
+  \ \\\\\
+  ' \\\\\\
