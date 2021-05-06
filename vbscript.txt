@@ -1,0 +1,174 @@
+#######################   General   ######################
+
+    'Stop Script
+Wscript.Quit
+
+    'Get vbscript location
+workingDirectory = CreateObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName)
+
+#######################   Arguments   ######################
+
+    'Catch incoming arguments (filenames dropped onto vbscript)
+If WScript.Arguments.Count > 0 Then
+		For i = 0 to Wscript.Arguments.Count - 1
+			filePathAndName = Replace(Wscript.Arguments(i), "\", "/")
+		next
+end if
+
+
+#######################   Executing   ######################
+
+    'Execute shell command
+dim wSh
+Set wSh = WScript.CreateObject("WScript.Shell")
+wsh.run cmdString, 1, TRUE  'TRUE = wait until finished, FALSE = proceed without waiting
+
+    'Execute shell command and wait for user input before closing
+dim wSh
+wSh.run "%comspec% /k c: & cd c:\targetDirectory & commandToExecute & pause", 1, TRUE
+
+#######################   File System   ######################
+
+
+    'Look through files in current folder
+Set fso = CreateObject("Scripting.FileSystemObject")
+sFolder = Left(WScript.ScriptFullName, InStrRev(WScript.ScriptFullName, "\"))
+Set folder = fso.GetFolder(sFolder)
+Set files = folder.Files
+For each folderIdx In files
+  fileName = folderIdx.name
+Next
+
+    'Loop through subfolders
+Set fso = CreateObject("Scripting.FileSystemObject")
+For Each objFolder In fso.GetFolder("C:\Folder").Subfolders
+  folderFullPath = objFolder.Path
+  
+  a = split(folderFullPath, "\")
+  folderNameWithoutPath = a(ubound(a))
+Next
+
+    'Find if file exists
+Set fso = CreateObject("Scripting.FileSystemObject")
+if fso.FileExists(filePathAndName) then
+  debug.print "FILE EXISTS"
+end if
+
+    'Delete file
+Set fso = CreateObject("Scripting.FileSystemObject")
+if fso.FileExists(filePathAndName) then fso.DeleteFile(filePathAndName)
+
+    'Rename with Powershell
+wShRen.run "powershell rename-item " & Chr(34) & Chr(34) & Chr(34) & oldFileName & Chr(34) & Chr(34) & Chr(34) & " " & Chr(34) & Chr(34) & Chr(34) & newFileName & Chr(34) & Chr(34) & Chr(34), 1, True
+
+
+#######################   Text Files   ######################
+
+
+    'Read and Write from text file
+dim fso, iFile, oFile
+set fso = CreateObject("Scripting.FileSystemObject")
+set iFile = fso.OpenTextFile(Arg)
+set oFile = fso.CreateTextFile(replace(Arg, ".","_e."))
+do until iFile.AtEndOfStream	
+  newArg = iFile.ReadLine
+  oFile.writeLine(newArg)
+loop
+iFile.close
+oFile.close
+
+    'Entire text file to array
+content = "" 'In case file is empty
+set fso = CreateObject("Scripting.FileSystemObject")
+Set iFile = fso.OpenTextFile(path)
+On Error Resume Next
+  content = SPlit(iFile.ReadAll, vbNewLine)
+On Error Goto 0
+
+
+#######################   Strings   ######################
+
+    'Remove first part of string up to (and including) first instance of substring
+    'eg. "123456 example:Hello World" -> "Hello World"
+newString = right(oldString, len(oldString) - inStr(oldString, "example:") - len("example:"))
+
+    'Remove first part of string up to (and including) last instance of substring
+    'eg. C:/Users/User/Documents/Example.txt -> Example.txt
+newString = right(oldString, len(oldString) - inStrRev(oldString, "/") - len("/"))
+
+    'Multi-line strings
+s = "this is the first line " & _
+"this is also the first line " & vbNewLine & _
+"this is the second line"
+
+#######################   Images   ######################
+
+    'Get image dimensions
+imagePath = C:/test.jpg
+set oShell = CreateObject("Shell.Application")
+set oFolder = oShell.Namespace(replace(left(imagePath, inStrRev(imagePath,"/")),"/","\"))
+set oFolderItem = oFolder.parsename(imagePath, len(imagePath)-inStrRev(imagePath,"/")))
+oString = oFolder.getdetailsof(oFolderItem,31)
+oStringParse = split(oString)
+imageWidth = CInt(right(oStringParse(0), len(oStringParse(0))-1))
+imageHeight = CInt(left(oStringParse(2), len(oStringParse(2))-1))
+
+
+#######################   Excel   ######################
+
+    'Execute macro from one Excel file on another Excel file
+Dim xlApp 
+Dim xlBook 
+Set xlApp = CreateObject("Excel.Application") 
+xlApp.Visible = true
+Set xlBook = xlApp.Workbooks.Open(targetFilePathAndName, 0, True) 
+xlApp.Run "'macroFilePathAndName'!macroName"
+xlApp.Quit 
+Set xlBook = Nothing 
+Set xlApp = Nothing 
+
+
+    'Is Excel file open already?
+    'Is .csv file already open?  https://stackoverflow.com/questions/17549641/check-if-a-specific-excel-file-is-open-when-several-excel-files-are-open-and-act
+targetOpen = false
+On Error Resume Next
+Set xl = GetObject(, "Excel.Application")  'attach to running Excel instance
+If Err or Err.Number <> 429Then
+    Set wb = Nothing
+	For Each obj In xl.Workbooks
+	msgbox obj.Name
+	  If obj.Name = filePathAndName Then  'use obj.FullName for full path
+		Set wb = obj
+		Exit For
+	  End If
+	Next
+	If wb Is Nothing Then
+	  targetOpen = false
+	else
+		targetOpen = true
+	End If
+End If
+On Error Goto 0
+
+
+#######################   VBA   ######################
+
+    'Loop through all cells in range
+Set rng = Range("K1:K400")
+For Each cell In rng
+    debug.print cell.value
+next
+
+
+#######################   Functions   ######################
+
+Function arrayIndeByValue(ByRef arr, str)
+  arrayIndexByValue = -1
+  On Error Resume Next
+    lim = -1
+    lim = UBound(arr)
+  On Error Goto 0
+  For i = 0 To lim
+    If arr(i) = str Then arrayIndexByValue = i
+  Next
+End Function
