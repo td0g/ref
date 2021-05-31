@@ -114,6 +114,17 @@ imageWidth = CInt(right(oStringParse(0), len(oStringParse(0))-1))
 imageHeight = CInt(left(oStringParse(2), len(oStringParse(2))-1))
 
 
+#######################   Script Status   ######################
+
+dim wSh														'Prepare windows shell object
+Set wSh = WScript.CreateObject("WScript.Shell")
+For i = 1 To 500
+    'Do Something
+    If i Mod 100 = 0 Then 'inform for every 100 process 
+        Wsh.Popup i & " items processed", 1, "Progress" ' show message box for a second and close
+    End If
+Next
+
 #######################   Excel   ######################
 
     'Execute macro from one Excel file on another Excel file
