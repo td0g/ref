@@ -6,6 +6,9 @@ Wscript.Quit
     'Get vbscript location
 workingDirectory = CreateObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName)
 
+  'Set variable scope to global
+dim x 'Before all other code??
+
 #######################   Arguments   ######################
 
     'Catch incoming arguments (filenames dropped onto vbscript)
