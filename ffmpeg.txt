@@ -25,6 +25,9 @@ ffmpeg -i 2.mp4 %filter% 2_edit.mp4
   #Hide Banner
 -hide_banner
 
+  #Output to text file
+-f null - > output.txt 2>&1"
+
 
 #######################   Syntax   ######################
 
