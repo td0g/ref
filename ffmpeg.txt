@@ -212,10 +212,13 @@ NOTE: If video is unaltered, copy the video stream without re-encoding (-c:v cop
   #Mixdown stereo to mono
 -ac 1
 
-  #Remove one channel, copy other channel to stereo
+  #Remove one channel, copy other channel to Mono
 -af pan="mono|c0=FL"
 -af pan="mono|c0=FR"
 -map_channel 0.1.0
+
+  #Mono to Stereo
+-ac 2
 
   #Change volume
 -af volume=2.0
