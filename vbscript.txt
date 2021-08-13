@@ -28,7 +28,15 @@ wsh.run cmdString, 1, TRUE  'TRUE = wait until finished, FALSE = proceed without
 
     'Execute shell command and wait for user input before closing
 dim wSh
+Set wSh = WScript.CreateObject("WScript.Shell")
 wSh.run "%comspec% /k c: & cd c:\targetDirectory & commandToExecute & pause", 1, TRUE
+
+    'Execute shell command from specific folder
+dim wSh
+Set wSh = WScript.CreateObject("WScript.Shell")
+wsh.CurrentDirectory = left(path,1) & ":"    'Change drive
+cmdString =  "cmd /K CD " & chr(34) & path & chr(34) & " & " & cmdString 'Change working directory then execute command
+wsh.run cmdString									'Execute    
 
 #######################   File System   ######################
 
