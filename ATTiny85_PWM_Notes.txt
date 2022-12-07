@@ -1,0 +1,81 @@
+ATTiny85 PWM Notes
+
+Timer0 controls 0C0A AND 0C0B (PB0 & PB1)
+Timer1 controls 0C1A, ~OC1A, OC1B, ~OC1B (PB0, PB1, PB3, and PB4)
+    Yes, there is overlap between the two timers
+
+Timer0 setup:
+    GTCCR (bits 0 and 7)
+        TSM
+        PSR0
+    TCCR0A
+        COM0A, COM0B, WGM
+    TCCR0B
+        FOC, WGM, CS
+    OCR0A
+    OCR0B
+    TIMSK
+        OCIE0
+        TOIE0
+    TIFR
+        OCF0
+        TOV0
+
+Timer1 setup:
+    TCCR1
+        CTC
+        PWM1A   COM1A
+        CS
+    GTCCR (bits 1 - 6)
+        PWM1B
+        COM1B
+        FOC
+        PSR
+    OCR1A
+    OCR1B
+    OCR1C
+    TIMSK
+        OCIE1
+        TOIE1
+    TIFR
+        OCF1
+        TOV1
+    PLLCSR
+        LSM
+        PCKE
+        PLLE
+        PLOCK
+
+Timer0 Instructions:
+    1. Choose desired PWM frequency
+    2. Choose WGM mode
+        See page 79, 
+        If desired PWM frequency is avaialble in chart on pp. 80, choose Fast PWM
+        To slow PWM frequency, us CTC (reduced resolution)
+    3. Choose Compare Output Mode
+        See page 78
+        If Fast PWM is selected, choose 10 (starts LOW and goes HI on compare match) or 11 (starts HI and goes LOW on compare match)
+        If CTC is used, choose 11 for 01 for 50% duty cycle
+    
+    4. Set TCCR0A
+        0bxxyy00zz, x=COM0A (0 if not used), y=COM0B (0 if not used), z=WGM
+    5. Set TCCR0B
+        0b0000xyyy, x=WGM02, yyy=CS (pages 80)
+    6. Set OCR0A and OCR0B to compare values
+    7. To disable PWM mid-code, set COM0x to 0 (TCCR0A &= 0b00111111 disables COM0A, TCCR0A &= 0b11001111  disables COM0B).
+    
+    
+    
+Timer1 Instructions:
+    1. Choose desired PWM frequency
+        See page 89.  Lots of frequencies available.
+    2. Choose Compare Output Mode
+        See pp. 86
+        Do NOT use 11
+        Only use 01 if alternative pins should be toggled as well
+    3. Set TCCR1
+        TCCR1 = (TCCR1 & 0b10000000) | 0xyyzzzz, x=enable PWM1A, y=COM1A, z=CS
+    4. Set GTCCR
+        GTCCR = 0b0xyy0000, x=enable PWM1B, y=COM1B
+    5. Set OCR1A and OCR1B to compare values, OCR1C to 255
+    6. To disable PWM mid-code, set COM1x to 0 (GTCCR &= 0b01001111 disables COM1B, TCCR1 &= 0b11001111 disables COM1A)
