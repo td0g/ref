@@ -7,11 +7,30 @@ PINOUT
 MARLIN_SKR2_WIFI_SETUP
 
   Seems ESP-07 needs to be flashed.  https://github.com/bigtreetech/BIGTREETECH-OCTOPUS-V1.0/issues/109
+  USE:
+    Arduino IDE
+    ESP8266 by ESP8266 Community board
+      Board: Generic esp8266 Module
+      Builtin Led: 2
+      Upload Speed: 921600 (115200 is more secure)
+      CPU Frequency: 80 MHz
+      Crystal Frequency: 26 MHz
+      Reset Method: dtr
+      Flash Size: 1MB, 256kB FS[SPIFFS]
+  3V3 adapter
+    Can keep PROG pin low for programming, high for running
   ESP3D: https://github.com/luc-github/ESP3D
+    
+    
+  Upload WEBUI
     Access Point: ESP3D
     PW:12345678
     Authentification: WPA
     IP: 192.168.0.1
+    https://github.com/luc-github/ESP3D-WEBUI/
+    Upload index.html.gz
+    Upload fav.ico
+    
   #define SERIAL_PORT_2 3
   #define BAUDRATE_2 250000 
 
