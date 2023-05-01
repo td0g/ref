@@ -1,0 +1,14 @@
+###  New Footprint  ###
+Footprint Editor
+File--> New Footprint
+
+Draw symbol's shape on F.Fab
+Draw courtyard (safe area) on Courtyard layer
+Add pins on F.Mask and B.Mask layers
+
+Save As --> Choose library
+  Create new global library for your shapes (named VTG)
+
+
+###  New Symbol ###
+Symbol Editor --> New Symbol
